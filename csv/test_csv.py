@@ -36,7 +36,19 @@ class TestReader(unittest.TestCase):
             )
 
     def test_reader_ignores_quote_characters(self):
-        file_io = io.StringIO('my,"test,strings"\nmy,second,rows')
+        file_io = io.StringIO('my,"test\,strings"')
+        csv_reader = reader(
+            file_io, deliminter=',', quotechar=None, escapechar='\\',
+        )
+
+        excpected_csv_strings = ['my', '"test,strings"']
+
+        self.assertEqual(
+            excpected_csv_strings, next(csv_reader),
+        )
+
+    def test_reader_escapes_quoted_strings(self):
+        file_io = io.StringIO('my,\"test,strings\"\nmy,second,rows')
         csv_reader = reader(file_io)
 
         excpected_csv_strings = [

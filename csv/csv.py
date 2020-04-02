@@ -6,7 +6,7 @@ but written fully in python
 import io
 
 def reader(
-    csvfile, deliminter=',', newline='\n', quotechar='"'
+    csvfile, deliminter=',', newline='\n', quotechar='"', escapechar=None,
 ):
     """
     Reader class accepts an iterable object for csvfile
@@ -26,11 +26,13 @@ def reader(
 
     for string_row in csvfile:
         yield _convert_string_to_columns(
-            string_row, newline, deliminter, quotechar,
+            string_row, deliminter, newline, quotechar, escapechar
         )
 
 
-def _convert_string_to_columns(string_row, deliminter, newline, quotechar):
+def _convert_string_to_columns(
+    string_row, deliminter, newline, quotechar, escapechar,
+):
     """
     Taking a generated string row return back the formatted
     resulting CSV columns.
@@ -41,11 +43,9 @@ def _convert_string_to_columns(string_row, deliminter, newline, quotechar):
 
     while num_chars < len(string_row):
         current_column_value = ''
-
         for index, char in enumerate(string_row[num_chars:]):
+            sub_string = string_row[num_chars:]
             if char == quotechar:
-                sub_string = string_row[num_chars:]
-
                 # Preform look ahead for next quote char,
                 # search to next quotechar if present.
                 next_quote_pos = sub_string[index:].find(quotechar)
@@ -54,11 +54,18 @@ def _convert_string_to_columns(string_row, deliminter, newline, quotechar):
                     current_column_value += quoted_chars.rstrip()
                     num_chars += 1
                     break
+            elif (
+                quotechar == None
+                and (char == deliminter and sub_string[index - 1] == escapechar)
+            ):
+                current_column_value = current_column_value[:-1] + char
+                num_chars += 1
+                continue
             elif char == deliminter or char == newline:
                 num_chars += 1
                 break
-
-            current_column_value += char
+            else:
+                current_column_value += char
 
         columns.append(current_column_value)
         num_chars += len(current_column_value)
