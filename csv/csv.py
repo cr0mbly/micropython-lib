@@ -6,7 +6,8 @@ but written fully in python
 import io
 
 def reader(
-    csvfile, deliminter=',', newline='\n', quotechar='"', escapechar=None,
+    csvfile, deliminter=',', quotechar='"', escapechar=None,
+    skipinitialspace=False,
 ):
     """
     Reader class accepts an iterable object for csvfile
@@ -26,12 +27,13 @@ def reader(
 
     for string_row in csvfile:
         yield _convert_string_to_columns(
-            string_row, deliminter, newline, quotechar, escapechar
+            string_row, deliminter, quotechar, escapechar,
+            skipinitialspace,
         )
 
 
 def _convert_string_to_columns(
-    string_row, deliminter, newline, quotechar, escapechar,
+    string_row, deliminter, quotechar, escapechar, skipinitialspace,
 ):
     """
     Taking a generated string row return back the formatted
@@ -61,8 +63,11 @@ def _convert_string_to_columns(
                 current_column_value = current_column_value[:-1] + char
                 num_chars += 1
                 continue
-            elif char == deliminter or char == newline:
-                num_chars += 1
+            elif char == deliminter or char == '\n':
+                if skipinitialspace and sub_string[index + 1] == ' ':
+                    num_chars += 2
+                else:
+                    num_chars += 1
                 break
             else:
                 current_column_value += char

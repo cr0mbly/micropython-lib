@@ -6,7 +6,7 @@ from csv import reader
 class TestReader(unittest.TestCase):
 
     def test_reader_loads_file_object(self):
-        file_io = io.StringIO('my,test,strings\nmy,second,rows')
+        file_io = io.StringIO("""my,test,strings\nmy,second,rows""")
 
         csv_reader = reader(file_io)
 
@@ -60,6 +60,14 @@ class TestReader(unittest.TestCase):
             self.assertEqual(
                 excpected_csv_strings[index], row_list,
             )
+
+    def test_skipinital_skips_initial_space(self):
+        file_io = io.StringIO('my,test, strings')
+        csv_reader = reader(file_io, deliminter=',', skipinitialspace=True)
+
+        excpected_csv_strings = ['my', 'test', 'strings']
+
+        self.assertEqual(excpected_csv_strings, next(csv_reader))
 
     def test_non_iterable_raises_exception(self):
         csv_reader = reader(None)
