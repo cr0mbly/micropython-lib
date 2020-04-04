@@ -1,13 +1,14 @@
 """
-Ported CSV module from IPython/csv.
+Ported CSV module from CPython/csv.
 Provides a similar feature set as the above version
 but written fully in python
 """
 import io
 
+
 def reader(
-    csvfile, deliminter=',', quotechar='"', escapechar=None,
-    skipinitialspace=False,
+    csvfile, deliminter=',', lineterminator='\r\n', quotechar='"',
+    escapechar=None, skipinitialspace=False,
 ):
     """
     Reader class accepts an iterable object for csvfile
@@ -25,11 +26,31 @@ def reader(
         # CSV is already in an iterable format
         csv_rows = csvfile
 
-    for string_row in csvfile:
+    for string_row in _get_next_string_row(csvfile):
         yield _convert_string_to_columns(
-            string_row, deliminter, quotechar, escapechar,
-            skipinitialspace,
+            string_row, deliminter, quotechar, escapechar, skipinitialspace,
         )
+
+
+def _get_next_string_row(csvfile):
+    if hasattr(csvfile, 'read'):
+        csv_rows = csvfile
+
+        char = csvfile.read(1)
+
+        row = ''
+        while char != '':
+            if char == '\n' or char == '\r':
+                yield row
+                row = ''
+            else:
+                row += char
+
+            char = csvfile.read(1)
+        yield row
+    else:
+        for row in csvfile:
+            yield row
 
 
 def _convert_string_to_columns(
@@ -40,7 +61,6 @@ def _convert_string_to_columns(
     resulting CSV columns.
     """
     columns = []
-
     num_chars = 0
 
     while num_chars < len(string_row):
@@ -63,11 +83,13 @@ def _convert_string_to_columns(
                 current_column_value = current_column_value[:-1] + char
                 num_chars += 1
                 continue
-            elif char == deliminter or char == '\n':
-                if skipinitialspace and sub_string[index + 1] == ' ':
-                    num_chars += 2
-                else:
-                    num_chars += 1
+
+            elif char == deliminter:
+                num_chars += (
+                    2
+                    if skipinitialspace and sub_string[index + 1] == ' '
+                    else 1
+                )
                 break
             else:
                 current_column_value += char

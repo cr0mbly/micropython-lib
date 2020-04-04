@@ -6,7 +6,7 @@ from csv import reader
 class TestReader(unittest.TestCase):
 
     def test_reader_loads_file_object(self):
-        file_io = io.StringIO("""my,test,strings\nmy,second,rows""")
+        file_io = io.StringIO('my,test,strings\nmy,second,rows')
 
         csv_reader = reader(file_io)
 
@@ -16,9 +16,19 @@ class TestReader(unittest.TestCase):
         ]
 
         for index, row_list in enumerate(csv_reader):
-            self.assertEqual(
-                excpected_csv_strings[index], row_list,
-            )
+            self.assertEqual( excpected_csv_strings[index], row_list)
+
+    def test_reader_parses_carriage_return(self):
+        file_io = io.StringIO('my,test,strings\rmy,second,rows')
+        csv_reader = reader(file_io)
+
+        excpected_csv_strings = [
+            ['my', 'test', 'strings'],
+            ['my', 'second', 'rows'],
+        ]
+
+        for index, row_list in enumerate(csv_reader):
+            self.assertEqual(excpected_csv_strings[index], row_list)
 
     def test_reader_loads_non_file_iterables(self):
         csv_lists = ['my,test,strings', 'my,second,rows']
@@ -47,26 +57,11 @@ class TestReader(unittest.TestCase):
             excpected_csv_strings, next(csv_reader),
         )
 
-    def test_reader_escapes_quoted_strings(self):
-        file_io = io.StringIO('my,\"test,strings\"\nmy,second,rows')
-        csv_reader = reader(file_io)
-
-        excpected_csv_strings = [
-            ['my', '"test,strings"'],
-            ['my', 'second', 'rows'],
-        ]
-
-        for index, row_list in enumerate(csv_reader):
-            self.assertEqual(
-                excpected_csv_strings[index], row_list,
-            )
 
     def test_skipinital_skips_initial_space(self):
         file_io = io.StringIO('my,test, strings')
         csv_reader = reader(file_io, deliminter=',', skipinitialspace=True)
-
         excpected_csv_strings = ['my', 'test', 'strings']
-
         self.assertEqual(excpected_csv_strings, next(csv_reader))
 
     def test_non_iterable_raises_exception(self):
