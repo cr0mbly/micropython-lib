@@ -1,6 +1,6 @@
 import io
 import unittest
-from csv import reader
+from csv import reader, QUOTE_NONNUMERIC
 
 
 class TestReader(unittest.TestCase):
@@ -57,11 +57,17 @@ class TestReader(unittest.TestCase):
             excpected_csv_strings, next(csv_reader),
         )
 
-
     def test_skipinital_skips_initial_space(self):
         file_io = io.StringIO('my,test, strings')
         csv_reader = reader(file_io, deliminter=',', skipinitialspace=True)
         excpected_csv_strings = ['my', 'test', 'strings']
+        self.assertEqual(excpected_csv_strings, next(csv_reader))
+
+    def test_quoteminimal_casts_numeric_values(self):
+        file_io = io.StringIO('my,test, 1,2.0')
+        csv_reader = reader(file_io, quoting=QUOTE_NONNUMERIC)
+        excpected_csv_strings = ['my', 'test', 1.0, 2.0]
+
         self.assertEqual(excpected_csv_strings, next(csv_reader))
 
     def test_non_iterable_raises_exception(self):

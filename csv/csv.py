@@ -5,10 +5,15 @@ but written fully in python
 """
 import io
 
+QUOTE_MINIMAL = 0
+QUOTE_ALL = 1
+QUOTE_NONNUMERIC = 2
+QUOTE_NONE = 3
 
 def reader(
     csvfile, deliminter=',', lineterminator='\r\n', quotechar='"',
-    escapechar=None, skipinitialspace=False,
+    escapechar=None, skipinitialspace=False, doublequote=True,
+    quoting=QUOTE_MINIMAL,
 ):
     """
     Reader class accepts an iterable object for csvfile
@@ -28,7 +33,8 @@ def reader(
 
     for string_row in _get_next_string_row(csvfile):
         yield _convert_string_to_columns(
-            string_row, deliminter, quotechar, escapechar, skipinitialspace,
+            string_row, deliminter, quotechar, escapechar,
+            skipinitialspace, doublequote, quoting,
         )
 
 
@@ -45,7 +51,6 @@ def _get_next_string_row(csvfile):
                 row = ''
             else:
                 row += char
-
             char = csvfile.read(1)
         yield row
     else:
@@ -54,7 +59,8 @@ def _get_next_string_row(csvfile):
 
 
 def _convert_string_to_columns(
-    string_row, deliminter, quotechar, escapechar, skipinitialspace,
+    string_row, deliminter, quotechar, escapechar,
+    skipinitialspace, doublequote, quoting,
 ):
     """
     Taking a generated string row return back the formatted
@@ -94,7 +100,13 @@ def _convert_string_to_columns(
             else:
                 current_column_value += char
 
-        columns.append(current_column_value)
         num_chars += len(current_column_value)
 
+        if quoting == QUOTE_NONNUMERIC:
+            try:
+                current_column_value = float(current_column_value)
+            except ValueError as e:
+                pass
+
+        columns.append(current_column_value)
     return columns
