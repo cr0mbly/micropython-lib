@@ -74,6 +74,14 @@ def _convert_string_to_columns(
         for index, char in enumerate(string_row[num_chars:]):
             sub_string = string_row[num_chars:]
             if char == quotechar:
+                # Test if next character is also a quotechar.
+                if sub_string[index + 1] == quotechar:
+                    current_column_value += (
+                        quotechar if doublequote else quotechar * 2
+                    )
+                    num_chars += 2
+                    break
+
                 # Preform look ahead for next quote char,
                 # search to next quotechar if present.
                 next_quote_pos = sub_string[index:].find(quotechar)
