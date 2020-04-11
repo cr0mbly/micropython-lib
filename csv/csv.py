@@ -3,12 +3,9 @@ Ported CSV module from CPython/csv.
 Provides a similar feature set as the above version
 but written fully in python
 """
-import io
-
 QUOTE_MINIMAL = 0
-QUOTE_ALL = 1
 QUOTE_NONNUMERIC = 2
-QUOTE_NONE = 3
+
 
 def reader(
     csvfile, deliminter=',', lineterminator='\r\n', quotechar='"',
@@ -20,18 +17,10 @@ def reader(
     """
     try:
         csv_iterable = iter(csvfile)
-    except TypeError as e:
+    except TypeError:
         raise TypeError('csvfile must be of an iterable type')
 
-    csv_row_list = []
-
-    if hasattr(csvfile, 'read'):
-        csv_rows = csvfile
-    else:
-        # CSV is already in an iterable format
-        csv_rows = csvfile
-
-    for string_row in _get_next_string_row(csvfile):
+    for string_row in _get_next_string_row(csv_iterable):
         yield _convert_string_to_columns(
             string_row, deliminter, quotechar, escapechar,
             skipinitialspace, doublequote, quoting,
@@ -39,9 +28,11 @@ def reader(
 
 
 def _get_next_string_row(csvfile):
+    """
+    Resolves the next CSV row. Searches for either line break
+    or return carriages in search of result.
+    """
     if hasattr(csvfile, 'read'):
-        csv_rows = csvfile
-
         char = csvfile.read(1)
 
         row = ''
@@ -91,7 +82,7 @@ def _convert_string_to_columns(
                     num_chars += 1
                     break
             elif (
-                quotechar == None
+                quotechar is None
                 and (char == deliminter and sub_string[index - 1] == escapechar)
             ):
                 current_column_value = current_column_value[:-1] + char
@@ -113,8 +104,88 @@ def _convert_string_to_columns(
         if quoting == QUOTE_NONNUMERIC:
             try:
                 current_column_value = float(current_column_value)
-            except ValueError as e:
+            except ValueError:
                 pass
 
         columns.append(current_column_value)
     return columns
+
+
+class writer:
+    """
+    CSV writer accepts a writable file object and exposes two methods
+     - writerow
+     - writerows
+    to update fileobject with passed in list/iterable of lists
+    """
+    def __init__(
+        self, csvfile, deliminter=',', lineterminator='\r\n', quotechar='"',
+        escapechar=None, doublequote=True, skipinitialspace=False,
+        quoting=QUOTE_MINIMAL,
+    ):
+        if not hasattr(csvfile, 'write'):
+            raise TypeError('csvfile must have a write method present to use.')
+        if not doublequote and escapechar is None:
+            raise TypeError('need to escape, but no escapechar set')
+
+        self.csvfile = csvfile
+        self.deliminter = deliminter
+        self.lineterminator = lineterminator
+        self.quotechar = quotechar
+        self.escapechar = escapechar
+        self.doublequote = doublequote
+        self.quoting = quoting
+
+    def writerow(self, csvrow):
+        string_row = ''
+        for index, column in enumerate(csvrow, start=1):
+            is_numeric_character = True
+            try:
+                float(column)
+            except ValueError:
+                is_numeric_character = False
+
+            column = str(column)
+
+            if not is_numeric_character:
+                column = (
+                    column.replace(self.quotechar, self.quotechar*2)
+                    if self.doublequote and self.escapechar is None
+                    else column.replace(
+                        self.quotechar, self.escapechar + self.quotechar
+                    )
+                )
+            if (
+                self.deliminter in column
+                or self.quoting == QUOTE_NONNUMERIC
+                or (self.quotechar in column and self.escapechar is None)
+                and self.quoting == QUOTE_MINIMAL
+            ):
+                if (
+                    self.quoting == QUOTE_MINIMAL
+                    or (
+                        self.quoting == QUOTE_NONNUMERIC
+                        and not is_numeric_character
+                    )
+                ):
+                    column = self.quotechar + column + self.quotechar
+
+            string_row += (
+                column + self.deliminter if index < len(csvrow) else column
+            )
+
+        self.csvfile.write(string_row + self.lineterminator)
+        return len(string_row)
+
+    def writerows(self, csvrows):
+        """
+        Taking an iterable of lists writes each
+        computed row to the instanciated file object.
+        """
+        try:
+            csv_iterable = iter(csvrows)
+        except TypeError:
+            raise TypeError('csvrows must be of an iterable type')
+
+        for row in csv_iterable:
+            self.writerow(row)
