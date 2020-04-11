@@ -1,7 +1,14 @@
 import io
 import unittest
 
-from csv import reader, writer, QUOTE_NONNUMERIC
+from csv import (
+    Error,
+    QUOTE_ALL,
+    QUOTE_NONNUMERIC,
+    QUOTE_NONE,
+    reader,
+    writer,
+)
 
 
 class TestReader(unittest.TestCase):
@@ -17,7 +24,7 @@ class TestReader(unittest.TestCase):
         ]
 
         for index, row_list in enumerate(csv_reader):
-            self.assertEqual( excpected_csv_strings[index], row_list)
+            self.assertEqual(excpected_csv_strings[index], row_list)
 
     def test_reader_parses_carriage_return(self):
         file_io = io.StringIO('my,test,strings\rmy,second,rows')
@@ -51,12 +58,7 @@ class TestReader(unittest.TestCase):
         csv_reader = reader(
             file_io, deliminter=',', quotechar=None, escapechar='\\',
         )
-
-        excpected_csv_strings = ['my', '"test,strings"']
-
-        self.assertEqual(
-            excpected_csv_strings, next(csv_reader),
-        )
+        self.assertEqual(['my', '"test,strings"'], next(csv_reader))
 
     def test_doublequote_combines_quotes(self):
         file_io_doublequoted = io.StringIO('my,test,strings""')
@@ -78,12 +80,11 @@ class TestReader(unittest.TestCase):
         file_io = io.StringIO('my,test, 1,2.0')
         csv_reader = reader(file_io, quoting=QUOTE_NONNUMERIC)
         excpected_csv_strings = ['my', 'test', 1.0, 2.0]
-
         self.assertEqual(excpected_csv_strings, next(csv_reader))
 
     def test_non_iterable_raises_exception(self):
         csv_reader = reader(None)
-        self.assertRaises(TypeError, lambda: next(csv_reader))
+        self.assertRaises(Error, lambda: next(csv_reader))
 
 
 class TestWriter(unittest.TestCase):
@@ -94,9 +95,7 @@ class TestWriter(unittest.TestCase):
 
     def test_writerow_saves_row_with_string_output(self):
         self.writer.writerow(['my', 'test', 'string'])
-        self.assertEqual(
-            'my,test,string\r\n', self.string_file.getvalue()
-        )
+        self.assertEqual('my,test,string\r\n', self.string_file.getvalue())
 
     def test_writerows_saves_rows_with_string_output(self):
         self.writer.writerows([
@@ -113,29 +112,46 @@ class TestWriter(unittest.TestCase):
             ['my', 'test', 'string'], ['my', 'second', 'row'],
         ])
         self.assertEqual(
-            'my,test,string\nmy,second,row\n', self.string_file.getvalue()
+            'my,test,string\nmy,second,row\n', self.string_file.getvalue(),
         )
 
     def test_quote_are_escaped_with_doublequotes(self):
         self.writer = writer(self.string_file, doublequote=True)
         self.writer.writerow(['my', 'test', '"string'])
-        self.assertEqual(
-            'my,test,"""string"\r\n', self.string_file.getvalue()
-        )
+        self.assertEqual('my,test,"""string"\r\n', self.string_file.getvalue())
+
+    def test_none_are_cast_to_empty_strings(self):
+        self.writer = writer(self.string_file)
+        self.writer.writerow(['my', None, 'string'])
+        self.assertEqual('my,,string\r\n', self.string_file.getvalue())
 
     def test_escaping_of_characters_is_present_when_set(self):
         self.writer = writer(
             self.string_file, doublequote=False, escapechar='\\'
         )
         self.writer.writerow(['my', 'test', '"string'])
-        self.assertEqual(
-            'my,test,\\"string\r\n', self.string_file.getvalue()
-        )
+        self.assertEqual('my,test,\\"string\r\n', self.string_file.getvalue())
 
     def test_quote_non_numeric(self):
         self.writer = writer(self.string_file, quoting=QUOTE_NONNUMERIC)
         self.writer.writerow(['my', 'test', 4.2, 2])
         self.assertEqual('"my","test",4.2,2\r\n', self.string_file.getvalue())
+
+    def test_quote_all(self):
+        self.writer = writer(self.string_file, quoting=QUOTE_ALL)
+        self.writer.writerow(['my', '"test', 4.2, 2, None])
+        self.assertEqual(
+            '"my","""test","4.2","2",""\r\n', self.string_file.getvalue(),
+        )
+
+    def test_quote_none(self):
+        self.writer = writer(
+            self.string_file, quoting=QUOTE_NONE, escapechar='\\',
+        )
+        self.writer.writerow(['my', '"test', 4.2, 2, None])
+        self.assertEqual(
+            'my,\\"test,4.2,2,\r\n', self.string_file.getvalue(),
+        )
 
 
 if __name__ == '__main__':

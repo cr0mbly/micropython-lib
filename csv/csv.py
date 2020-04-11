@@ -4,7 +4,15 @@ Provides a similar feature set as the above version
 but written fully in python
 """
 QUOTE_MINIMAL = 0
+QUOTE_ALL = 1
 QUOTE_NONNUMERIC = 2
+QUOTE_NONE = 3
+
+
+class Error(Exception):
+    """
+    Stub CSV exception
+    """
 
 
 def reader(
@@ -18,7 +26,7 @@ def reader(
     try:
         csv_iterable = iter(csvfile)
     except TypeError:
-        raise TypeError('csvfile must be of an iterable type')
+        raise Error('csvfile must be of an iterable type')
 
     for string_row in _get_next_string_row(csv_iterable):
         yield _convert_string_to_columns(
@@ -126,7 +134,7 @@ class writer:
         if not hasattr(csvfile, 'write'):
             raise TypeError('csvfile must have a write method present to use.')
         if not doublequote and escapechar is None:
-            raise TypeError('need to escape, but no escapechar set')
+            raise Error('need to escape, but no escapechar set')
 
         self.csvfile = csvfile
         self.deliminter = deliminter
@@ -139,14 +147,33 @@ class writer:
     def writerow(self, csvrow):
         string_row = ''
         for index, column in enumerate(csvrow, start=1):
+            # Cast None values.
+            column = '' if column is None else column
+
+            # Ignore quote handling and parse row.
+            if self.quoting == QUOTE_NONE:
+                if isinstance(column, str):
+                    column = column.replace(
+                        self.quotechar, self.escapechar + self.quotechar
+                    )
+                string_row += (
+                    str(column) + self.deliminter
+                    if index < len(csvrow)
+                    else column
+                )
+                continue
+
+            # Preform integer check.
             is_numeric_character = True
             try:
                 float(column)
             except ValueError:
                 is_numeric_character = False
 
+            # Convert any non string object to string.
             column = str(column)
 
+            # Escape current field if required.
             if not is_numeric_character:
                 column = (
                     column.replace(self.quotechar, self.quotechar*2)
@@ -155,6 +182,8 @@ class writer:
                         self.quotechar, self.escapechar + self.quotechar
                     )
                 )
+
+            # Tack on any extra quoting depending on Quoting type.
             if (
                 self.deliminter in column
                 or self.quoting == QUOTE_NONNUMERIC
@@ -170,6 +199,19 @@ class writer:
                 ):
                     column = self.quotechar + column + self.quotechar
 
+            # Quote any column that hasn't been already if
+            # QUOTE_ALL is selected.
+            if (
+                self.quoting == QUOTE_ALL
+                and (
+                    column == ''
+                    or (
+                        column[0] != self.quotechar
+                        or column[-1] != self.quotechar
+                    )
+                )
+            ):
+                column = self.quotechar + column + self.quotechar
             string_row += (
                 column + self.deliminter if index < len(csvrow) else column
             )
@@ -185,7 +227,7 @@ class writer:
         try:
             csv_iterable = iter(csvrows)
         except TypeError:
-            raise TypeError('csvrows must be of an iterable type')
+            raise Error('csvrows must be of an iterable type')
 
         for row in csv_iterable:
             self.writerow(row)
