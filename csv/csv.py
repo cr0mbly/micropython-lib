@@ -268,3 +268,39 @@ class DictReader:
         else:
             row_dict[self.restkey] = row_list[index + 1:]
             return row_dict
+
+
+class DictWriter:
+    """
+    DictWriter takes rows of dictionary objects and writes them to the passed
+    in file object corresponding to the column names laid out in the
+    fieldnames kwarg.
+    """
+    def __init__(
+        self, f, fieldnames, restval='', extrasaction='raise', *args, **kwargs
+    ):
+        self._csvwriter = writer(f, *args, **kwargs)
+        self.fieldnames = fieldnames
+        self.restval=restval
+        self.extrasaction=extrasaction
+
+    def writeheader(self):
+        return self._csvwriter.writerow(self.fieldnames)
+
+    def writerow(self, rowdict):
+        if self.extrasaction == 'raise':
+            extra_fields = set(rowdict.keys()) - set(self.fieldnames)
+            if extra_fields:
+                raise ValueError(
+                    'dict contains fields not in fieldnames: '
+                    + ', '.join(extra_fields)
+                )
+
+        return self._csvwriter.writerow([
+            rowdict.get(column_header, self.restval)
+            for column_header in self.fieldnames
+        ])
+
+    def writerows(self, rowdicts):
+        for row in rowdicts:
+            self.writerow(row)

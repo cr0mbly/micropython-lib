@@ -2,13 +2,14 @@ import io
 import unittest
 
 from csv import (
+    DictReader,
+    DictWriter,
     Error,
     QUOTE_ALL,
     QUOTE_NONNUMERIC,
     QUOTE_NONE,
     reader,
     writer,
-    DictReader
 )
 
 
@@ -156,8 +157,11 @@ class TestWriter(unittest.TestCase):
 
 
 class TestDictReader(unittest.TestCase):
+
     def setUp(self):
-        self.file_io = io.StringIO('fruits,vegetables,meats\napple,spinach,pork')
+        self.file_io = io.StringIO(
+            'fruits,vegetables,meats\napple,spinach,pork'
+        )
 
     def test_fieldnames_are_loader_by_default(self):
         csv_reader = DictReader(self.file_io)
@@ -180,7 +184,9 @@ class TestDictReader(unittest.TestCase):
             next(csv_reader),
         )
 
-    def test_iterating_on_dict_reader_with_greater_fieldnames_uses_restval(self):
+    def test_iterating_on_dict_reader_with_greater_fieldnames_uses_restval(
+        self
+    ):
         self.file_io = io.StringIO('fruits,vegetables,meats\napple,spinach')
         csv_reader = DictReader(self.file_io, restval='N/A')
         self.assertDictEqual(
@@ -189,7 +195,9 @@ class TestDictReader(unittest.TestCase):
         )
 
     def test_iterating_on_dict_reader_with_greater_columns_uses_restkey(self):
-        self.file_io = io.StringIO('fruits,vegetables\napple,spinach,boat,house,car')
+        self.file_io = io.StringIO(
+            'fruits,vegetables\napple,spinach,boat,house,car'
+        )
         csv_reader = DictReader(self.file_io, restkey='outstanding_fields')
         self.assertDictEqual(
             {
@@ -199,6 +207,72 @@ class TestDictReader(unittest.TestCase):
             },
             next(csv_reader),
         )
+
+
+class TestDictWriter(unittest.TestCase):
+
+    def setUp(self):
+        self.string_file = io.StringIO('')
+
+    def test_writeheader_writes_headers_to_file(self):
+        writer = DictWriter(
+            self.string_file, fieldnames=['fruits', 'vegetables'],
+        )
+        writer.writeheader()
+        self.assertEqual('fruits,vegetables\r\n', self.string_file.getvalue())
+
+    def test_writeheader_writes_single_row(self):
+        writer = DictWriter(
+            self.string_file, fieldnames=['fruits', 'vegetables'],
+        )
+        writer.writeheader()
+        writer.writerow({'fruits': 'apple', 'vegetables': 'spinach'})
+        self.assertEqual(
+            'fruits,vegetables\r\napple,spinach\r\n',
+            self.string_file.getvalue(),
+        )
+
+    def test_write_writes_single_row_with_default_restval_when_field_missing(
+        self
+    ):
+        writer = DictWriter(
+            self.string_file,
+            restval='cabbage',
+            fieldnames=['fruits', 'vegetables'],
+        )
+        writer.writeheader()
+        writer.writerow({'fruits': 'apple'})
+
+        self.assertEqual(
+            'fruits,vegetables\r\napple,cabbage\r\n',
+            self.string_file.getvalue(),
+        )
+
+    def test_write_raises_exception_on_extra_field(self):
+        writer = DictWriter(
+            self.string_file, fieldnames=['fruits', 'vegetables'],
+        )
+        writer.writeheader()
+        with self.assertRaises(ValueError):
+            writer.writerow(
+                {'fruits': 'apple', 'vegetables': 'spinach', 'car': 'ford'}
+            )
+
+    def test_write_ignores_extra_field(self):
+        writer = DictWriter(
+            self.string_file,
+            fieldnames=['fruits', 'vegetables'],
+            extrasaction='ignore'
+        )
+        writer.writeheader()
+        writer.writerow(
+            {'fruits': 'apple', 'vegetables': 'spinach', 'car': 'ford'}
+        )
+        self.assertEqual(
+            'fruits,vegetables\r\napple,spinach\r\n',
+            self.string_file.getvalue(),
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
