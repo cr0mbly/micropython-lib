@@ -126,6 +126,11 @@ class TestCase:
                 return
             raise
 
+    def assertDictEqual(self, x, y, msg=None):
+        self.assertIsInstance(x, dict, 'First argument is not a dictionary')
+        self.assertIsInstance(y, dict, 'Second argument is not a dictionary')
+        if x != y:
+            self.fail("\n>>> %s is not equal to\n>>> %s" % (str(x), str(y)))
 
 
 def skip(msg):
@@ -136,10 +141,12 @@ def skip(msg):
         return _inner
     return _decor
 
+
 def skipIf(cond, msg):
     if not cond:
         return lambda x: x
     return skip(msg)
+
 
 def skipUnless(cond, msg):
     if cond:
@@ -148,12 +155,16 @@ def skipUnless(cond, msg):
 
 
 class TestSuite:
+
     def __init__(self):
         self.tests = []
+
     def addTest(self, cls):
         self.tests.append(cls)
 
+
 class TestRunner:
+
     def run(self, suite):
         res = TestResult()
         for c in suite.tests:
@@ -170,6 +181,7 @@ class TestRunner:
 
         return res
 
+
 class TestResult:
     def __init__(self):
         self.errorsNum = 0
@@ -179,6 +191,7 @@ class TestResult:
 
     def wasSuccessful(self):
         return self.errorsNum == 0 and self.failuresNum == 0
+
 
 # TODO: Uncompliant
 def run_class(c, test_result):
@@ -197,11 +210,11 @@ def run_class(c, test_result):
             except SkipTest as e:
                 print(" skipped:", e.args[0])
                 test_result.skippedNum += 1
-            except:
+            except Exception:
                 print(" FAIL")
                 test_result.failuresNum += 1
                 # Uncomment to investigate failure in detail
-                #raise
+                # raise
                 continue
             finally:
                 tear_down()

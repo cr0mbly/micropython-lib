@@ -231,3 +231,40 @@ class writer:
 
         for row in csv_iterable:
             self.writerow(row)
+
+
+class DictReader:
+    """
+    DictReader returns a dictionary object of CSV rows matching the headers
+    of the file or defined fieldnames with the matching ordered row columns.
+    Set restkey/restval to define what default values should be set for columns
+    that don't match the number of fieldheaders or the default values when
+    there are more fieldheaders then rows.
+    """
+    def __init__(
+        self, csvfile, fieldnames=None, restkey=None, restval=None,
+        *args, **kwargs
+    ):
+        self._reader = reader(csvfile, *args, **kwargs)
+        self.restkey = restkey
+        self.restval = restval
+
+        if fieldnames is None:
+            self.fieldnames = next(self._reader)
+        else:
+            self.fieldnames = fieldnames
+
+    def __next__(self):
+        row_list = next(self._reader)
+        row_dict = {}
+        for index, header in enumerate(self.fieldnames):
+            if index < len(row_list):
+                row_dict[header] = row_list[index]
+            else:
+                row_dict[header] = self.restval
+
+        if len(self.fieldnames) >= len(row_list):
+            return row_dict
+        else:
+            row_dict[self.restkey] = row_list[index + 1:]
+            return row_dict

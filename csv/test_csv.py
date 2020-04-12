@@ -8,6 +8,7 @@ from csv import (
     QUOTE_NONE,
     reader,
     writer,
+    DictReader
 )
 
 
@@ -153,6 +154,51 @@ class TestWriter(unittest.TestCase):
             'my,\\"test,4.2,2,\r\n', self.string_file.getvalue(),
         )
 
+
+class TestDictReader(unittest.TestCase):
+    def setUp(self):
+        self.file_io = io.StringIO('fruits,vegetables,meats\napple,spinach,pork')
+
+    def test_fieldnames_are_loader_by_default(self):
+        csv_reader = DictReader(self.file_io)
+        self.assertEqual(
+            ['fruits', 'vegetables', 'meats'], csv_reader.fieldnames,
+        )
+
+    def test_defined_fieldnames_override_default(self):
+        csv_reader = DictReader(
+            self.file_io, fieldnames=['column_1', 'column_2', 'column_3'],
+        )
+        self.assertEqual(
+            ['column_1', 'column_2', 'column_3'], csv_reader.fieldnames,
+        )
+
+    def test_iterating_on_dict_reader_returns_dict_map(self):
+        csv_reader = DictReader(self.file_io)
+        self.assertDictEqual(
+            {'fruits': 'apple', 'vegetables': 'spinach', 'meats': 'pork'},
+            next(csv_reader),
+        )
+
+    def test_iterating_on_dict_reader_with_greater_fieldnames_uses_restval(self):
+        self.file_io = io.StringIO('fruits,vegetables,meats\napple,spinach')
+        csv_reader = DictReader(self.file_io, restval='N/A')
+        self.assertDictEqual(
+            {'fruits': 'apple', 'vegetables': 'spinach', 'meats': 'N/A'},
+            next(csv_reader),
+        )
+
+    def test_iterating_on_dict_reader_with_greater_columns_uses_restkey(self):
+        self.file_io = io.StringIO('fruits,vegetables\napple,spinach,boat,house,car')
+        csv_reader = DictReader(self.file_io, restkey='outstanding_fields')
+        self.assertDictEqual(
+            {
+                'fruits': 'apple',
+                'vegetables': 'spinach',
+                'outstanding_fields': ['boat', 'house', 'car']
+            },
+            next(csv_reader),
+        )
 
 if __name__ == '__main__':
     unittest.main()

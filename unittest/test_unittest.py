@@ -1,5 +1,6 @@
 import unittest
 
+
 class TestUnittestAssertions(unittest.TestCase):
 
     def testFail(self):
@@ -7,16 +8,16 @@ class TestUnittestAssertions(unittest.TestCase):
             self.fail('failure')
 
     def testEqual(self):
-        self.assertEqual(0,0)
-        self.assertEqual([0,1,2], [0,1,2])
+        self.assertEqual(0, 0)
+        self.assertEqual([0, 1, 2], [0, 1, 2])
         with self.assertRaises(AssertionError):
-            self.assertEqual(0,None)
+            self.assertEqual(0, None)
         with self.assertRaises(AssertionError):
-            self.assertEqual([0,1,2], [1,2,3])
+            self.assertEqual([0, 1, 2], [1, 2, 3])
 
     def test_AlmostEqual(self):
-        self.assertAlmostEqual(    1.00000001, 1.0)
-        self.assertNotAlmostEqual( 1.0000001, 1.0)
+        self.assertAlmostEqual(1.00000001, 1.0)
+        self.assertNotAlmostEqual(1.0000001, 1.0)
         with self.assertRaises(AssertionError):
             self.assertAlmostEqual(1.0000001, 1.0)
         with self.assertRaises(AssertionError):
@@ -56,19 +57,19 @@ class TestUnittestAssertions(unittest.TestCase):
             self.assertNotAlmostEqual(1.1, 1.0, places=2, delta=2)
 
     def testNotEqual(self):
-        self.assertNotEqual([0,1,2], [0,2,1])
+        self.assertNotEqual([0, 1, 2], [0, 2, 1])
         with self.assertRaises(AssertionError):
-            self.assertNotEqual(0,0)
+            self.assertNotEqual(0, 0)
         with self.assertRaises(AssertionError):
-            self.assertNotEqual([0,1,2], [0,1,2])
+            self.assertNotEqual([0, 1, 2], [0, 1, 2])
 
     def testIs(self):
         self.assertIs(None, None)
         with self.assertRaises(AssertionError):
-            self.assertIs([1,2,3], [1,2,3])
+            self.assertIs([1, 2, 3], [1, 2, 3])
 
     def testIsNot(self):
-        self.assertIsNot([1,2,3], [1,2,3])
+        self.assertIsNot([1, 2, 3], [1, 2, 3])
         with self.assertRaises(AssertionError):
             self.assertIsNot(None, None)
 
@@ -107,9 +108,14 @@ class TestUnittestAssertions(unittest.TestCase):
             1/0
             pass
 
+    def testAssertDictEqual(self):
+        with self.assertRaises(AssertionError):
+            self.assertDictEqual({1: 2}, {2: 1})
+
     @unittest.skip('test of skipping')
     def testSkip(self):
         self.assertFail('this should be skipped')
+
 
 if __name__ == '__main__':
     unittest.main()
